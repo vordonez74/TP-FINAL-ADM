@@ -1,0 +1,110 @@
+# Run a Python application on a Spark standalone cluster
+#./bin/spark-submit master spark://207.184.161.138:7077 examples/src/main/python/pi.py 1000
+./home/cucai/spark-3.5.0-bin-hadoop3/bin/spark-submit master spark://190.182.223.172:7077 /home/cucai/Documentos/TP-FINAL-ADM
+/proyecto.py 1000
+#http://190.182.223.172:8081/  
+
+
+
+#####################local#####################
+/home/cucai/Documentos/TP-FINAL-ADM/consumos.csv
+
+~/spark-3.5.0-bin-hadoop3/sbin$ ./start-master.sh
+
+http://localhost:8080/
+
+URL: spark://cucai-Lenovo:7077
+
+./start-slave.sh spark://127.0.0.1:7077
+
+cucai@cucai-Lenovo:~/spark-3.5.0-bin-hadoop3/bin$ ./pyspark
+
+df = spark.read.options(header='True',inferSchema='True').csv('/home/cucai/Documentos/TP-FINAL-ADM/consumos.csv')
+df.count()
+df.printSchema()
+df.show()
+
+df.filter(col('Codigo').isNull()).show()
+
+from pyspark.sql.functions import to_date
+
+df2 = df.withColumn("fechaD",to_date("Fecha","yyyy/MM/dd"))
+
+Para calcular los puntos de pedidos:
+
+df2.createOrReplaceTempView('data')
+spark.sql("select * from data limit 3").show()
+
+
+
+Para guardar los resultados:
+
+resultado.write.mode("overwrite").csv('/home/cucai/Documentos/TP-FINAL-ADM/ptoPed.csv')
+
+#spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
+#spark.conf.set("spark.sql.legacy.timeParserPolicy", "CORRECTED")
+
+#####################Remoto#####################
+/home/cucai/dataset/consumos.csv
+/home/cucai/dataset/Sales_Data/Liquor_Sales.csv (4.5G)
+
+/home/cucai/bigdata/2019-Dec.csv
+/home/cucai/bigdata/22019-Nov.csv
+/home/cucai/bigdata/22019-Oct.csv
+/home/cucai/bigdata/22020-Feb.csv
+/home/cucai/bigdata/22020-Jan.csv
+
+~/bigdata/spark-3.5.0-bin-hadoop3/sbin$ ./start-master.sh
+http://190.182.223.172:8080/ ó http://serviciosit.ar:8080/
+URL: spark://aed:7077
+
+./start-slave.sh spark://127.0.0.1:7077
+
+cucai@aed:~/bigdata/spark-3.5.0-bin-hadoop3/bin$ ./pyspark 
+
+# from pyspark.sql import SparkSession
+# spark = SparkSession.builder.appName("EjemploConversionFecha").getOrCreate()
+
+
+df = spark.read.options(header='True',inferSchema='True').csv('/home/cucai/dataset/consumos.csv')
+Liquor = spark.read.options(header='True',inferSchema='True').csv('/home/cucai/dataset/Sales_Data/Liquor_Sales.csv')
+
+type(Liquor) #<class 'pyspark.sql.dataframe.DataFrame'>
+
+Liquor.show()
+
+nuevas_columnas = ["nrofactura","fecha","nroTienda","nombreTienda", "direccion", "ciudad","cp", "ubiTienda","nroCondado", "condado","categoría", "nombreCate","nroProv", "nombreProv","nroArt", "descArt","paquete","volBotella_ml","costoBotella_estado","ventaPorMenorBotellasPorEstado","botellasVendidas","Oferta_usd","volumenVendido_lt","volumenVendido_gal"]
+
+licor = Liquor.toDF(*nuevas_columnas)
+
+Liquor.count() #19.666.763
+len(Liquor.columns) #24
+
+Liquor.describe().show() # NO EJECUTAR
+
+
+from pyspark.sql.functions import col
+
+licor.printSchema()
+
+licor.filter(col('botellasVendidas').isNull()).show()
+
+licor.select(['ciudad']).show()
+
+licor.select(['ciudad']).distinct().show()
+
+licor.select(['fecha','nombreTienda']).show()
+
+from pyspark.sql.functions import to_date
+
+licor2 = licor.withColumn("fechaD",to_date("fecha","dd/MM/yyyy"))
+
+from pyspark.sql.functions import to_date, year, sum
+
+ventas_por_anio = licor2.groupBy(year("fecha").alias("Anio")).agg(sum("volumenVendido_lt").alias("VentasTotales"))
+
+
+
+
+
+
